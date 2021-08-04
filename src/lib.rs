@@ -1,7 +1,10 @@
 use wasm_bindgen::prelude::*;
 
+mod component;
 mod node;
-use node::Node;
+
+use crate::component::Component;
+use crate::node::Node;
 
 const REUST: &str = "__reust";
 
@@ -18,41 +21,52 @@ macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
-fn list() -> Node<'static> {
-    let numbers = vec![1, 2, 3, 4, 5];
+struct List;
 
-    Node::element(
-        "div",
-        &[],
-        &[],
-        vec![
-            Node::element(
-                "h1",
-                &[("class", "header")],
-                &[],
-                vec![Node::text("My list of numbers")],
-            ),
-            Node::element(
-                "ul",
-                &[("id", "my-list")],
-                &[],
-                numbers
-                    .iter()
-                    .map(|i| Node::element("li", &[], &[], vec![Node::text(i)]))
-                    .collect(),
-            ),
-            Node::element(
-                "button",
-                &[],
-                &[("click", &|| alert("click"))],
-                vec![Node::text("Click here!")],
-            ),
-        ],
-    )
+impl Component for List {
+    fn render(&self) -> Node {
+        Node::element(
+            "ul",
+            &[],
+            (1..=5)
+                .map(|i| Node::element("li", &[], vec![Node::text(i)]))
+                .collect(),
+        )
+    }
+}
+
+struct App;
+
+impl Component for App {
+    fn render(&self) -> Node {
+        let mut clicks = 0;
+
+        Node::element(
+            "div",
+            &[],
+            vec![
+                Node::element(
+                    "h1",
+                    &[("class", "header")],
+                    vec![Node::text("My list of numbers")],
+                ),
+                List.render(),
+                Node::element("button", &[], vec![Node::text("Click here!")]).add_event_listener(
+                    "click",
+                    move |_| {
+                        clicks += 1;
+                        console_log!("{}", clicks);
+                    },
+                ),
+            ],
+        )
+    }
 }
 
 #[wasm_bindgen]
 pub fn main() {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     console_log!("Hello, World!");
 
     let window = web_sys::window().expect("no global `window` exists");
@@ -61,6 +75,6 @@ pub fn main() {
         .get_element_by_id(REUST)
         .expect(&format!("should have element with {} id", REUST));
 
-    let node = list().render(&document);
-    div.append_child(&node).expect("unable to mount app");
+    div.append_child(&App.render().into())
+        .expect("unable to mount app");
 }

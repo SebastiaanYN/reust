@@ -1,68 +1,69 @@
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
-pub type Attribute<'a> = (&'a str, &'a str);
-pub type EventListenerCallback = &'static (dyn Fn());
-pub type EventListener = (&'static str, EventListenerCallback);
-
-pub enum Node<'a> {
-    Text(String),
-    Element {
-        name: &'a str,
-        props: &'a [Attribute<'a>],
-        events: &'static [EventListener],
-        children: Vec<Node<'a>>,
-    },
+pub struct Node {
+    n: web_sys::Node,
 }
 
-impl<'a> Node<'a> {
-    pub fn text<T: ToString>(text: T) -> Node<'a> {
-        Node::Text(text.to_string())
-    }
-
-    pub fn element(
-        name: &'a str,
-        props: &'a [Attribute<'a>],
-        events: &'static [EventListener],
-        children: Vec<Node<'a>>,
-    ) -> Node<'a> {
-        Node::Element {
-            name,
-            props,
-            events,
-            children,
+impl From<web_sys::Element> for Node {
+    fn from(el: web_sys::Element) -> Self {
+        Self {
+            n: web_sys::Node::from(el),
         }
     }
+}
 
-    pub fn render(&self, document: &web_sys::Document) -> web_sys::Node {
-        match self {
-            Node::Text(txt) => web_sys::Node::from(document.create_text_node(&txt)),
-            Node::Element {
-                name,
-                props,
-                events,
-                children,
-            } => {
-                let el = document.create_element(name).unwrap();
-
-                for (name, value) in *props {
-                    el.set_attribute(name, &value).unwrap();
-                }
-
-                for (name, handler) in *events {
-                    let closure = Closure::wrap(Box::new(handler) as Box<dyn Fn()>);
-                    // let closure = handler;
-
-                    el.add_event_listener_with_callback(name, closure.as_ref().unchecked_ref())
-                        .unwrap();
-                    closure.forget();
-                }
-
-                for child in children {
-                    el.append_child(&child.render(document)).unwrap();
-                }
-
-                web_sys::Node::from(el)
-            }
+impl From<web_sys::Text> for Node {
+    fn from(txt: web_sys::Text) -> Self {
+        Self {
+            n: web_sys::Node::from(txt),
         }
+    }
+}
+
+impl From<Node> for web_sys::Node {
+    fn from(node: Node) -> Self {
+        node.n
+    }
+}
+
+impl Node {
+    pub fn element(name: &str, props: &[(&str, &str)], children: Vec<Self>) -> Self {
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+
+        let el = document.create_element(name).unwrap();
+
+        for (name, value) in props {
+            el.set_attribute(name, &value).unwrap();
+        }
+
+        for child in children {
+            el.append_child(&child.n).unwrap();
+        }
+
+        el.into()
+    }
+
+    pub fn text<T: ToString>(txt: T) -> Self {
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+
+        document.create_text_node(&txt.to_string()).into()
+    }
+
+    pub fn add_event_listener<T>(self, event_name: &str, handler: T) -> Self
+    where
+        T: 'static + FnMut(web_sys::Event),
+    {
+        let cb = Closure::wrap(Box::new(handler) as Box<dyn FnMut(_)>);
+
+        self.n
+            .add_event_listener_with_callback(event_name, cb.as_ref().unchecked_ref())
+            .unwrap();
+
+        cb.forget();
+
+        self
     }
 }

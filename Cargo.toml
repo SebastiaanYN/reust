@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2.75"
-typed-html = { git = "https://github.com/bodil/typed-html", rev = "4c13ecca" }
+console_error_panic_hook = "0.1.6"
 js-sys = "0.3.52"
 
 [dependencies.web-sys]
