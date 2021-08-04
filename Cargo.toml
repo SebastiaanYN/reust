@@ -1,0 +1,26 @@
+[package]
+name = "reust"
+version = "0.1.0"
+authors = ["SebastiaanYN"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.75"
+typed-html = { git = "https://github.com/bodil/typed-html", rev = "4c13ecca" }
+js-sys = "0.3.52"
+
+[dependencies.web-sys]
+version = "0.3.52"
+features = [
+  'Document',
+  'Element',
+  'Event',
+  'EventTarget',
+  'HtmlElement',
+  'Node',
+  'Text',
+  'Window',
+]
