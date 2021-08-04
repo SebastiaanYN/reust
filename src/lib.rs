@@ -2,9 +2,11 @@ use wasm_bindgen::prelude::*;
 
 mod component;
 mod node;
+mod reactive;
 
 use crate::component::Component;
 use crate::node::Node;
+use crate::reactive::Reactive;
 
 const REUST: &str = "__reust";
 
@@ -21,14 +23,25 @@ macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
-struct List;
+struct List<T, I>
+where
+    T: ToString,
+    I: IntoIterator<Item = T>,
+{
+    content: I,
+}
 
-impl Component for List {
-    fn render(&self) -> Node {
+impl<T, I> Component for List<T, I>
+where
+    T: ToString,
+    I: IntoIterator<Item = T>,
+{
+    fn render(self) -> Node {
         Node::element(
             "ul",
             &[],
-            (1..=5)
+            self.content
+                .into_iter()
                 .map(|i| Node::element("li", &[], vec![Node::text(i)]))
                 .collect(),
         )
@@ -38,8 +51,8 @@ impl Component for List {
 struct App;
 
 impl Component for App {
-    fn render(&self) -> Node {
-        let mut clicks = 0;
+    fn render(self) -> Node {
+        let mut clicks = Reactive::new(0);
 
         Node::element(
             "div",
@@ -50,14 +63,25 @@ impl Component for App {
                     &[("class", "header")],
                     vec![Node::text("My list of numbers")],
                 ),
-                List.render(),
-                Node::element("button", &[], vec![Node::text("Click here!")]).add_event_listener(
-                    "click",
-                    move |_| {
-                        clicks += 1;
-                        console_log!("{}", clicks);
-                    },
-                ),
+                List { content: (1..=5) }.render(),
+                {
+                    let mut rc = clicks.clone();
+
+                    let el = Node::element("button", &[], vec![Node::text("Click here!")])
+                        .add_event_listener("click", move |_| rc += 1);
+
+                    clicks.subscribe(&|count| console_log!("Clicks updated to {}", count));
+
+                    el
+                },
+                {
+                    let mut rc = clicks.clone();
+
+                    let el = Node::element("button", &[], vec![Node::text("Click here #2!")])
+                        .add_event_listener("click", move |_| rc += 2);
+
+                    el
+                },
             ],
         )
     }
@@ -65,6 +89,7 @@ impl Component for App {
 
 #[wasm_bindgen]
 pub fn main() {
+    #[cfg(debug_assertions)]
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
     console_log!("Hello, World!");
