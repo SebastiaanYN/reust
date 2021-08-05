@@ -29,30 +29,6 @@ impl From<Node> for web_sys::Node {
 }
 
 impl Node {
-    pub fn element(name: &str, props: &[(&str, &str)], children: Vec<Self>) -> Self {
-        let window = web_sys::window().expect("no global `window` exists");
-        let document = window.document().expect("should have a document on window");
-
-        let el = document.create_element(name).unwrap();
-
-        for (name, value) in props {
-            el.set_attribute(name, &value).unwrap();
-        }
-
-        for child in children {
-            el.append_child(&child.n).unwrap();
-        }
-
-        el.into()
-    }
-
-    pub fn text<T: ToString>(txt: T) -> Self {
-        let window = web_sys::window().expect("no global `window` exists");
-        let document = window.document().expect("should have a document on window");
-
-        document.create_text_node(&txt.to_string()).into()
-    }
-
     pub fn set_text<T: ToString>(&self, txt: T) {
         self.n.set_text_content(Some(&txt.to_string()));
     }
@@ -70,4 +46,28 @@ impl Node {
 
         cb.forget();
     }
+}
+
+pub fn element(name: &str, props: &[(&str, &str)], children: Vec<Node>) -> Node {
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
+
+    let el = document.create_element(name).unwrap();
+
+    for (name, value) in props {
+        el.set_attribute(name, &value).unwrap();
+    }
+
+    for child in children {
+        el.append_child(&child.n).unwrap();
+    }
+
+    el.into()
+}
+
+pub fn text<T: ToString>(txt: T) -> Node {
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
+
+    document.create_text_node(&txt.to_string()).into()
 }

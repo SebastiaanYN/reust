@@ -1,5 +1,10 @@
 use wasm_bindgen::prelude::*;
 
+macro_rules! console_log {
+    ($($t:tt)*) => (web_sys::console::log_1(&format!($($t)*).into()))
+}
+
+mod app;
 mod component;
 mod node;
 mod reactive;
@@ -7,120 +12,9 @@ mod task_queue;
 
 use crate::component::Component;
 use crate::node::Node;
-use crate::reactive::Reactive;
 use crate::task_queue::TaskQueue;
 
 const REUST: &str = "__reust";
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen]
-    fn alert(s: &str);
-
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
-macro_rules! console_log {
-    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
-
-struct List<T, I>
-where
-    T: ToString,
-    I: IntoIterator<Item = T>,
-{
-    content: I,
-}
-
-impl<T, I> Component for List<T, I>
-where
-    T: ToString,
-    I: IntoIterator<Item = T>,
-{
-    fn render(self, _: &mut TaskQueue) -> Node {
-        Node::element(
-            "ul",
-            &[],
-            self.content
-                .into_iter()
-                .map(|i| Node::element("li", &[], vec![Node::text(i)]))
-                .collect(),
-        )
-    }
-}
-
-struct App;
-
-impl Component for App {
-    fn render(self, task_queue: &mut TaskQueue) -> Node {
-        let mut clicks = Reactive::new(0);
-
-        Node::element(
-            "div",
-            &[],
-            vec![
-                Node::element(
-                    "h1",
-                    &[("class", "header")],
-                    vec![Node::text("My list of numbers")],
-                ),
-                List { content: (1..=10) }.render(task_queue),
-                Node::element(
-                    "p",
-                    &[],
-                    vec![{
-                        let el = Node::text(format!("Clicked {} times", clicks.value()));
-
-                        {
-                            let el_clone = el.clone();
-
-                            clicks.subscribe(move |count| {
-                                el_clone.set_text(format!("Clicked {} times", count));
-                            })
-                        }
-
-                        el
-                    }],
-                ),
-                {
-                    let el = Node::element("button", &[], vec![Node::text("Add 1")]);
-
-                    {
-                        let mut clicks_clone = clicks.clone();
-
-                        el.add_event_listener("click", move |_| clicks_clone += 1);
-                    }
-
-                    {
-                        let mut task_queue = task_queue.clone();
-
-                        clicks.subscribe(move |count| {
-                            let count_clone = count.clone();
-
-                            task_queue.queue(move || {
-                                console_log!("{}", count_clone);
-                            });
-                        });
-                    }
-
-                    el
-                },
-                {
-                    let el = Node::element("button", &[], vec![Node::text("Add 2")]);
-
-                    {
-                        let mut clicks_clone = clicks.clone();
-
-                        el.add_event_listener("click", move |_| clicks_clone += 2);
-                    }
-
-                    el
-                },
-            ],
-        )
-    }
-}
 
 #[wasm_bindgen]
 pub fn main() {
@@ -136,6 +30,6 @@ pub fn main() {
         .expect(&format!("should have element with {} id", REUST));
 
     let mut task_queue = TaskQueue::new();
-    div.append_child(&App.render(&mut task_queue).into())
+    div.append_child(&app::App.render(&mut task_queue).into())
         .expect("unable to mount app");
 }
