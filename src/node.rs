@@ -53,10 +53,10 @@ impl Node {
     }
 
     pub fn add_event_listener(
-        self,
+        &self,
         event_name: &str,
         handler: impl FnMut(web_sys::Event) + 'static,
-    ) -> Self {
+    ) {
         let cb = Closure::wrap(Box::new(handler) as Box<dyn FnMut(_)>);
 
         self.n
@@ -64,7 +64,5 @@ impl Node {
             .unwrap();
 
         cb.forget();
-
-        self
     }
 }

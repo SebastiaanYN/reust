@@ -67,10 +67,13 @@ impl Component for App {
                 ),
                 List { content: (1..=10) }.render(task_queue),
                 {
-                    let mut rc = clicks.clone();
+                    let el = Node::element("button", &[], vec![Node::text("Click here!")]);
 
-                    let el = Node::element("button", &[], vec![Node::text("Click here!")])
-                        .add_event_listener("click", move |_| rc += 1);
+                    {
+                        let mut rc = clicks.clone();
+
+                        el.add_event_listener("click", move |_| rc += 1);
+                    }
 
                     {
                         let mut task_queue = task_queue.clone();
@@ -85,10 +88,13 @@ impl Component for App {
                     el
                 },
                 {
-                    let mut rc = clicks.clone();
+                    let el = Node::element("button", &[], vec![Node::text("Click here #2!")]);
 
-                    let el = Node::element("button", &[], vec![Node::text("Click here #2!")])
-                        .add_event_listener("click", move |_| rc += 2);
+                    {
+                        let mut rc = clicks.clone();
+
+                        el.add_event_listener("click", move |_| rc += 2);
+                    }
 
                     el
                 },
