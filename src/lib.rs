@@ -66,34 +66,53 @@ impl Component for App {
                     vec![Node::text("My list of numbers")],
                 ),
                 List { content: (1..=10) }.render(task_queue),
+                Node::element(
+                    "p",
+                    &[],
+                    vec![{
+                        let el = Node::text(format!("Clicked {} times", clicks.value()));
+
+                        {
+                            let el_clone = el.clone();
+
+                            clicks.subscribe(move |count| {
+                                el_clone.set_text(format!("Clicked {} times", count));
+                            })
+                        }
+
+                        el
+                    }],
+                ),
                 {
-                    let el = Node::element("button", &[], vec![Node::text("Click here!")]);
+                    let el = Node::element("button", &[], vec![Node::text("Add 1")]);
 
                     {
-                        let mut rc = clicks.clone();
+                        let mut clicks_clone = clicks.clone();
 
-                        el.add_event_listener("click", move |_| rc += 1);
+                        el.add_event_listener("click", move |_| clicks_clone += 1);
                     }
 
                     {
                         let mut task_queue = task_queue.clone();
 
                         clicks.subscribe(move |count| {
-                            let count = count.clone();
+                            let count_clone = count.clone();
 
-                            task_queue.queue(move || console_log!("{}", count));
+                            task_queue.queue(move || {
+                                console_log!("{}", count_clone);
+                            });
                         });
                     }
 
                     el
                 },
                 {
-                    let el = Node::element("button", &[], vec![Node::text("Click here #2!")]);
+                    let el = Node::element("button", &[], vec![Node::text("Add 2")]);
 
                     {
-                        let mut rc = clicks.clone();
+                        let mut clicks_clone = clicks.clone();
 
-                        el.add_event_listener("click", move |_| rc += 2);
+                        el.add_event_listener("click", move |_| clicks_clone += 2);
                     }
 
                     el

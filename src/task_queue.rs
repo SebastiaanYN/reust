@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
-type Task = Box<dyn Fn()>;
+type Task = Box<dyn FnMut()>;
 
 struct TaskQueueState {
     resolved_promise: js_sys::Promise,
@@ -26,7 +26,7 @@ impl TaskQueue {
         }
     }
 
-    pub fn queue(&mut self, task: impl Fn() + 'static) {
+    pub fn queue(&mut self, task: impl FnMut() + 'static) {
         self.state.borrow_mut().queue.push(Box::new(task));
 
         if !self.state.borrow().update_scheduled {
@@ -42,7 +42,7 @@ impl TaskQueue {
         let closure = Closure::wrap(Box::new(move |_| {
             let mut state = state.borrow_mut();
 
-            for task in &state.queue {
+            for task in &mut state.queue {
                 task();
             }
 

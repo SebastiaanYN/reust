@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+#[derive(Clone)]
 pub struct Node {
     n: web_sys::Node,
 }
@@ -50,6 +51,10 @@ impl Node {
         let document = window.document().expect("should have a document on window");
 
         document.create_text_node(&txt.to_string()).into()
+    }
+
+    pub fn set_text<T: ToString>(&self, txt: T) {
+        self.n.set_text_content(Some(&txt.to_string()));
     }
 
     pub fn add_event_listener(
