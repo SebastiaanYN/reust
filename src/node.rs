@@ -52,10 +52,11 @@ impl Node {
         document.create_text_node(&txt.to_string()).into()
     }
 
-    pub fn add_event_listener<T>(self, event_name: &str, handler: T) -> Self
-    where
-        T: 'static + FnMut(web_sys::Event),
-    {
+    pub fn add_event_listener(
+        self,
+        event_name: &str,
+        handler: impl FnMut(web_sys::Event) + 'static,
+    ) -> Self {
         let cb = Closure::wrap(Box::new(handler) as Box<dyn FnMut(_)>);
 
         self.n

@@ -1,19 +1,19 @@
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
-type Listener<'a, T> = &'a dyn Fn(&T);
+type Listener<T> = Box<dyn FnMut(&T)>;
 
-struct ReactiveState<'a, T> {
+struct ReactiveState<T> {
     value: T,
-    listeners: Vec<Listener<'a, T>>,
+    listeners: Vec<Listener<T>>,
 }
 
 #[derive(Clone)]
-pub struct Reactive<'a, T> {
-    state: Rc<RefCell<ReactiveState<'a, T>>>,
+pub struct Reactive<T> {
+    state: Rc<RefCell<ReactiveState<T>>>,
 }
 
-impl<'a, T> Reactive<'a, T> {
+impl<T> Reactive<T> {
     pub fn new(value: T) -> Self {
         Self {
             state: Rc::new(RefCell::new(ReactiveState {
@@ -24,25 +24,25 @@ impl<'a, T> Reactive<'a, T> {
     }
 
     pub fn set(&mut self, value: T) {
-        (*self.state.borrow_mut()).value = value;
-
-        for listener in self.state.borrow().listeners.iter() {
-            listener(&self.state.borrow().value);
+        for listener in self.state.borrow_mut().listeners.iter_mut() {
+            listener(&value);
         }
+
+        (*self.state.borrow_mut()).value = value;
     }
 
     pub fn value(&self) -> Ref<'_, T> {
         Ref::map(self.state.borrow(), |state| &state.value)
     }
 
-    pub fn subscribe(&mut self, listener: Listener<'a, T>) {
-        self.state.borrow_mut().listeners.push(listener);
+    pub fn subscribe(&mut self, listener: impl FnMut(&T) + 'static) {
+        self.state.borrow_mut().listeners.push(Box::new(listener));
     }
 }
 
 macro_rules! add_operator {
     ($oper:ident, $method:ident, $assign:ident, $assign_method:ident) => {
-        impl<'a, T> std::ops::$assign<T> for Reactive<'a, T>
+        impl<T> std::ops::$assign<T> for Reactive<T>
         where
             T: Copy + std::ops::$oper<Output = T>,
         {

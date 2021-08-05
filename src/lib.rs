@@ -3,10 +3,12 @@ use wasm_bindgen::prelude::*;
 mod component;
 mod node;
 mod reactive;
+mod task_queue;
 
 use crate::component::Component;
 use crate::node::Node;
 use crate::reactive::Reactive;
+use crate::task_queue::TaskQueue;
 
 const REUST: &str = "__reust";
 
@@ -36,7 +38,7 @@ where
     T: ToString,
     I: IntoIterator<Item = T>,
 {
-    fn render(self) -> Node {
+    fn render(self, _: &mut TaskQueue) -> Node {
         Node::element(
             "ul",
             &[],
@@ -51,7 +53,7 @@ where
 struct App;
 
 impl Component for App {
-    fn render(self) -> Node {
+    fn render(self, task_queue: &mut TaskQueue) -> Node {
         let mut clicks = Reactive::new(0);
 
         Node::element(
@@ -63,14 +65,22 @@ impl Component for App {
                     &[("class", "header")],
                     vec![Node::text("My list of numbers")],
                 ),
-                List { content: (1..=5) }.render(),
+                List { content: (1..=10) }.render(task_queue),
                 {
                     let mut rc = clicks.clone();
 
                     let el = Node::element("button", &[], vec![Node::text("Click here!")])
                         .add_event_listener("click", move |_| rc += 1);
 
-                    clicks.subscribe(&|count| console_log!("Clicks updated to {}", count));
+                    {
+                        let mut task_queue = task_queue.clone();
+
+                        clicks.subscribe(move |count| {
+                            let count = count.clone();
+
+                            task_queue.queue(move || console_log!("{}", count));
+                        });
+                    }
 
                     el
                 },
@@ -100,6 +110,7 @@ pub fn main() {
         .get_element_by_id(REUST)
         .expect(&format!("should have element with {} id", REUST));
 
-    div.append_child(&App.render().into())
+    let mut task_queue = TaskQueue::new();
+    div.append_child(&App.render(&mut task_queue).into())
         .expect("unable to mount app");
 }
