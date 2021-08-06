@@ -1,7 +1,6 @@
 use crate::component::Component;
 use crate::node::{element, text, Node};
 use crate::reactive::Reactive;
-use crate::task_queue::TaskQueue;
 
 struct List<T, I>
 where
@@ -16,7 +15,7 @@ where
     T: ToString,
     I: IntoIterator<Item = T>,
 {
-    fn render(self, _: &mut TaskQueue) -> Node {
+    fn render(self) -> Node {
         element(
             "ul",
             &[],
@@ -31,7 +30,7 @@ where
 pub struct App;
 
 impl Component for App {
-    fn render(self, task_queue: &mut TaskQueue) -> Node {
+    fn render(self) -> Node {
         let mut clicks = Reactive::new(0);
 
         clicks.subscribe(|count| console_log!("{}", count));
@@ -45,7 +44,7 @@ impl Component for App {
                     &[("class", "header")],
                     vec![text("My list of numbers")],
                 ),
-                List { content: (1..=10) }.render(task_queue),
+                List { content: (1..=10) }.render(),
                 element(
                     "p",
                     &[],
@@ -56,15 +55,8 @@ impl Component for App {
 
                             {
                                 let el_clone = el.clone();
-                                let mut task_queue_clone = task_queue.clone();
 
-                                clicks.subscribe(move |count| {
-                                    let count_clone = count.clone();
-                                    let el_clone_clone = el_clone.clone();
-
-                                    task_queue_clone
-                                        .queue(move || el_clone_clone.set_text(count_clone));
-                                });
+                                clicks.subscribe(move |count| el_clone.set_text(count));
                             }
 
                             el
@@ -89,7 +81,10 @@ impl Component for App {
                     {
                         let mut clicks_clone = clicks.clone();
 
-                        el.add_event_listener("click", move |_| clicks_clone += 2);
+                        el.add_event_listener("click", move |_| {
+                            clicks_clone += 1;
+                            clicks_clone += 1;
+                        });
                     }
 
                     el

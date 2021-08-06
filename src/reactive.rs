@@ -1,3 +1,4 @@
+use crate::TASK_QUEUE;
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
@@ -6,6 +7,7 @@ type Listener<T> = Box<dyn FnMut(&T)>;
 struct ReactiveState<T> {
     value: T,
     listeners: Vec<Listener<T>>,
+    update_scheduled: bool,
 }
 
 #[derive(Clone)]
@@ -13,22 +15,37 @@ pub struct Reactive<T> {
     state: Rc<RefCell<ReactiveState<T>>>,
 }
 
-impl<T> Reactive<T> {
+impl<T: 'static + Clone> Reactive<T> {
     pub fn new(value: T) -> Self {
         Self {
             state: Rc::new(RefCell::new(ReactiveState {
                 value: value,
                 listeners: vec![],
+                update_scheduled: false,
             })),
         }
     }
 
     pub fn set(&mut self, value: T) {
-        for listener in self.state.borrow_mut().listeners.iter_mut() {
-            listener(&value);
-        }
+        self.state.borrow_mut().value = value;
 
-        (*self.state.borrow_mut()).value = value;
+        if !self.state.borrow().update_scheduled {
+            self.state.borrow_mut().update_scheduled = true;
+
+            TASK_QUEUE.with(|queue| {
+                let state = self.state.clone();
+
+                queue.borrow_mut().queue(move || {
+                    let value = state.borrow().value.clone();
+
+                    for listener in state.borrow_mut().listeners.iter_mut() {
+                        listener(&value);
+                    }
+
+                    state.borrow_mut().update_scheduled = false;
+                })
+            });
+        }
     }
 
     pub fn value(&self) -> Ref<'_, T> {
@@ -44,7 +61,7 @@ macro_rules! add_operator {
     ($oper:ident, $method:ident, $assign:ident, $assign_method:ident) => {
         impl<T> std::ops::$assign<T> for Reactive<T>
         where
-            T: Copy + std::ops::$oper<Output = T>,
+            T: 'static + Copy + std::ops::$oper<Output = T>,
         {
             fn $assign_method(&mut self, other: T) {
                 let updated = std::ops::$oper::$method(*self.value(), other);

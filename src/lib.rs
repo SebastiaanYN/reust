@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
 macro_rules! console_log {
@@ -16,6 +17,10 @@ use crate::task_queue::TaskQueue;
 
 const REUST: &str = "__reust";
 
+thread_local! {
+    pub static TASK_QUEUE: RefCell<TaskQueue> = RefCell::new(TaskQueue::new());
+}
+
 #[wasm_bindgen]
 pub fn main() {
     #[cfg(debug_assertions)]
@@ -29,7 +34,6 @@ pub fn main() {
         .get_element_by_id(REUST)
         .expect(&format!("should have element with {} id", REUST));
 
-    let mut task_queue = TaskQueue::new();
-    div.append_child(&app::App.render(&mut task_queue).into())
+    div.append_child(&app::App.render().into())
         .expect("unable to mount app");
 }
