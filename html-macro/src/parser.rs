@@ -2,39 +2,7 @@ use proc_macro2::Delimiter;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{braced, Error, Expr, Ident, LitStr, Token};
 
-#[derive(Debug)]
-pub struct Element {
-    name: Ident,
-    attributes: Vec<Attribute>,
-    events: Vec<Event>,
-    children: Vec<Child>,
-}
-
-#[derive(Debug)]
-pub enum Child {
-    Text(LitStr),
-    Element(Element),
-    Expr(Expr),
-}
-
-#[derive(Debug)]
-pub struct Attribute {
-    name: Ident,
-    value: AttributeValue,
-}
-
-#[derive(Debug)]
-pub enum AttributeValue {
-    Str(LitStr),
-    Element(Element),
-    Expr(Expr),
-}
-
-#[derive(Debug)]
-pub struct Event {
-    name: Ident,
-    expr: Expr,
-}
+use crate::ast::*;
 
 fn is_braced(input: ParseStream) -> bool {
     input.cursor().group(Delimiter::Brace).is_some()
