@@ -21,10 +21,9 @@ impl Codegen for Element {
                     &[
                         #(#props),*
                     ],
-                    vec![
-                        #(#children),*
-                    ],
                 );
+
+                #(el.append_children(#children.into_nodes());)*
 
                 #(#events)*
 
@@ -41,13 +40,13 @@ impl Codegen for Child {
             Self::Element(el) => el.gen(),
             Self::Expr(expr) => quote! {
                 {
-                    let el = text(#expr.value());
+                    let el = #expr;
 
-                    {
-                        let el = el.clone();
+                    // {
+                    //     let el = el.clone();
 
-                        #expr.subscribe(move |value| el.set_text(value));
-                    }
+                    //     #expr.subscribe(move |value| el.set_text_content(value));
+                    // }
 
                     el
                 }

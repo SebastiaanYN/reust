@@ -1,3 +1,4 @@
+#![feature(min_specialization)]
 use proc_macro_hack::proc_macro_hack;
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
@@ -9,30 +10,13 @@ macro_rules! console_log {
     ($($t:tt)*) => (web_sys::console::log_1(&format!($($t)*).into()))
 }
 
-mod app;
-mod component;
 mod node;
 mod reactive;
 mod task_queue;
 
-// use crate::component::Component;
-use crate::node::Node;
-use crate::node::{element, text};
+use crate::node::{element, text, IntoNodes};
 use crate::reactive::Reactive;
 use crate::task_queue::TaskQueue;
-
-macro_rules! cloned {
-    ( ($($x:ident),*) => $y:expr ) => {
-        {
-            $(
-                #[allow(unused_mut)]
-                let mut $x = $x.clone();
-            )*
-
-            $y
-        }
-    };
-}
 
 const REUST: &str = "__reust";
 
@@ -53,21 +37,16 @@ pub fn main() {
         .get_element_by_id(REUST)
         .expect(&format!("should have element with {} id", REUST));
 
-    // div.append_child(&app::App.render().into())
-    //     .expect("unable to mount app");
-
+    let title = "Counter";
     let mut counter = Reactive::new(0);
 
     counter.subscribe(|count| console_log!("{}", count));
 
     let app = html!(
         <div>
-            <h1>"Counter"</h1>
+            <h1>{title}</h1>
 
             <p>"Count: " {counter}</p>
-
-            <button @click={cloned!((counter) => move |_| counter += 1)}>"Add 1"</button>
-            <button @click={cloned!((counter) => move |_| counter += 2)}>"Add 2"</button>
         </div>
     );
 

@@ -1,5 +1,6 @@
 use crate::TASK_QUEUE;
 use std::cell::{Ref, RefCell};
+use std::fmt;
 use std::rc::Rc;
 
 type Listener<T> = Box<dyn FnMut(&T)>;
@@ -54,6 +55,12 @@ impl<T: 'static + Clone> Reactive<T> {
 
     pub fn subscribe(&mut self, listener: impl FnMut(&T) + 'static) {
         self.state.borrow_mut().listeners.push(Box::new(listener));
+    }
+}
+
+impl<T: ToString> fmt::Display for Reactive<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.state.borrow().value.to_string())
     }
 }
 
