@@ -65,13 +65,24 @@ impl<T: ToString> fmt::Display for Reactive<T> {
 }
 
 macro_rules! add_operator {
-    ($oper:ident, $method:ident, $assign:ident, $assign_method:ident) => {
+    ($op:ident, $op_method:ident, $assign:ident, $assign_method:ident) => {
+        impl<T> std::ops::$op<T> for &Reactive<T>
+        where
+            T: 'static + Clone + std::ops::$op<Output = T>,
+        {
+            type Output = T::Output;
+
+            fn $op_method(self, rhs: T) -> Self::Output {
+                std::ops::$op::$op_method(self.value().clone(), rhs)
+            }
+        }
+
         impl<T> std::ops::$assign<T> for Reactive<T>
         where
-            T: 'static + Copy + std::ops::$oper<Output = T>,
+            T: 'static + Clone + std::ops::$op<Output = T>,
         {
             fn $assign_method(&mut self, other: T) {
-                let updated = std::ops::$oper::$method(*self.value(), other);
+                let updated = std::ops::$op::$op_method(self.value().clone(), other);
                 self.set(updated);
             }
         }

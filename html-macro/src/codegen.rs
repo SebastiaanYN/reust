@@ -23,7 +23,7 @@ impl Codegen for Element {
                     ],
                 );
 
-                #(el.append_children(#children.into_nodes());)*
+                #(el.append_children(#children.as_nodes());)*
 
                 #(#events)*
 
@@ -40,13 +40,13 @@ impl Codegen for Child {
             Self::Element(el) => el.gen(),
             Self::Expr(expr) => quote! {
                 {
-                    let el = #expr;
+                    let el = #expr.as_nodes();
 
-                    // {
-                    //     let el = el.clone();
+                    {
+                        let el = el[0].clone();
 
-                    //     #expr.subscribe(move |value| el.set_text_content(value));
-                    // }
+                        #expr.subscribe(move |v| el.set_text_content(v));
+                    }
 
                     el
                 }
@@ -82,9 +82,7 @@ impl Codegen for Event {
         let expr = &self.expr;
 
         quote! {
-            {
-                el.add_event_listener(#name, #expr);
-            }
+            el.add_event_listener(#name, #expr);
         }
     }
 }

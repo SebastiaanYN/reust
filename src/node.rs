@@ -2,6 +2,7 @@ use crate::Reactive;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+#[derive(Clone)]
 pub struct Node(web_sys::Node);
 
 impl Node {
@@ -61,38 +62,38 @@ impl From<Node> for web_sys::Node {
 }
 
 pub trait IntoNodes {
-    fn into_nodes(self) -> Vec<Node>;
+    fn as_nodes(&self) -> Vec<Node>;
 }
 
 impl IntoNodes for Node {
-    fn into_nodes(self) -> Vec<Node> {
-        vec![self]
+    fn as_nodes(&self) -> Vec<Node> {
+        vec![self.clone()]
     }
 }
 
 impl<'a> IntoNodes for &'a str {
-    fn into_nodes(self) -> Vec<Node> {
+    fn as_nodes(&self) -> Vec<Node> {
         vec![text(self)]
     }
 }
 
 impl IntoNodes for String {
-    fn into_nodes(self) -> Vec<Node> {
-        self[..].into_nodes()
+    fn as_nodes(&self) -> Vec<Node> {
+        self.as_str().as_nodes()
     }
 }
 
 impl<T: IntoNodes> IntoNodes for Vec<T> {
-    fn into_nodes(self) -> Vec<Node> {
+    fn as_nodes(&self) -> Vec<Node> {
         self.into_iter()
-            .map(IntoNodes::into_nodes)
+            .map(IntoNodes::as_nodes)
             .flatten()
             .collect()
     }
 }
 
 impl<T: ToString> IntoNodes for Reactive<T> {
-    fn into_nodes(self) -> Vec<Node> {
-        self.to_string().into_nodes()
+    fn as_nodes(&self) -> Vec<Node> {
+        self.to_string().as_nodes()
     }
 }
